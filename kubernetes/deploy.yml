@@ -17,6 +17,7 @@ spec:
       containers:
       - name: zcashd-peers
         image: doubtingben/zcashd-peers
+        imagePullPolicy: Always
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole

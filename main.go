@@ -79,6 +79,20 @@ func main() {
 			fmt.Printf("Found test-zcashd-peers pod in default namespace\n")
 		}
 
+		zcashPeersPods, err := clientset.CoreV1().Pods("default").List(metav1.ListOptions{LabelSelector: "app=zcashd-peers"})
+		if errors.IsNotFound(err) {
+			fmt.Printf("app=zcashd-peers not found in default namespace\n")
+		} else if statusError, isStatus := err.(*errors.StatusError); isStatus {
+			fmt.Printf("Error getting pods app=zcashd-peers %v\n", statusError.ErrStatus.Message)
+		} else if err != nil {
+			panic(err.Error())
+		} else {
+			for _, pod := range zcashPeersPods.Items {
+				fmt.Printf("Pod peer IP: %s, Status: %#v", pod.Status.PodIP, pod.Status.ContainerStatuses)
+			}
+			//fmt.Printf("app=zcashd-peers: %#v\n", zcashPeersPods)
+		}
+
 		time.Sleep(60 * time.Second)
 	}
 }
