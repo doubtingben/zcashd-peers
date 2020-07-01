@@ -1,7 +1,11 @@
 FROM golang:1.13 as builder
 
-ADD . /app
 WORKDIR /app
+COPY go.mod go.sum ./
+# Download dependencies
+RUN go mod download
+
+ADD . /app
 RUN make build
 
 FROM alpine:latest

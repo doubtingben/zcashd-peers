@@ -38,6 +38,9 @@ import (
 	// _ "k8s.io/client-go/plugin/pkg/client/auth/openstack"
 )
 
+const labelName = "app"
+const labelValue = "zcash-node"
+
 func main() {
 	versionFlag := flag.Bool("version", false, "print version information")
 	flag.Parse()
@@ -46,6 +49,8 @@ func main() {
 		fmt.Printf("(go=%s, user=%s, date=%s)\n", GoVersion, BuildUser, BuildDate)
 		os.Exit(0)
 	}
+	fmt.Printf("(version=%s, branch=%s, gitcommit=%s)\n", Version, Branch, GitCommit)
+	fmt.Printf("(go=%s, user=%s, date=%s)\n", GoVersion, BuildUser, BuildDate)
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -64,35 +69,21 @@ func main() {
 			panic(err.Error())
 		}
 		fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
+		fmt.Printf("Omg plz\n")
 
-		// Examples for error handling:
-		// - Use helper functions e.g. errors.IsNotFound()
-		// - And/or cast to StatusError and use its properties like e.g. ErrStatus.Message
-		_, err = clientset.CoreV1().Pods("default").Get("test-zcashd-peers", metav1.GetOptions{})
+		zcashPeersPods, err := clientset.CoreV1().Pods("default").List(metav1.ListOptions{LabelSelector: labelName + "=" + labelValue})
 		if errors.IsNotFound(err) {
-			fmt.Printf("Pod test-zcashd-peers not found in default namespace\n")
+			fmt.Printf("zcashPeersPods not found in default namespace\n")
 		} else if statusError, isStatus := err.(*errors.StatusError); isStatus {
-			fmt.Printf("Error getting pod %v\n", statusError.ErrStatus.Message)
-		} else if err != nil {
-			panic(err.Error())
-		} else {
-			fmt.Printf("Found test-zcashd-peers pod in default namespace\n")
-		}
-
-		zcashPeersPods, err := clientset.CoreV1().Pods("default").List(metav1.ListOptions{LabelSelector: "app=zcashd-peers"})
-		if errors.IsNotFound(err) {
-			fmt.Printf("app=zcashd-peers not found in default namespace\n")
-		} else if statusError, isStatus := err.(*errors.StatusError); isStatus {
-			fmt.Printf("Error getting pods app=zcashd-peers %v\n", statusError.ErrStatus.Message)
+			fmt.Printf("Error getting zcashPeersPods %v\n", statusError.ErrStatus.Message)
 		} else if err != nil {
 			panic(err.Error())
 		} else {
 			for _, pod := range zcashPeersPods.Items {
-				fmt.Printf("Pod peer IP: %s, Status: %#v", pod.Status.PodIP, pod.Status.ContainerStatuses)
+				fmt.Printf("Pod peer IP: %s", pod.Status.PodIP)
 			}
-			//fmt.Printf("app=zcashd-peers: %#v\n", zcashPeersPods)
 		}
-
+		fmt.Printf("This is the end\n")
 		time.Sleep(60 * time.Second)
 	}
 }
