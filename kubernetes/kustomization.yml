@@ -2,6 +2,6 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
   - name: doubtingben/zcashd-peers
-    digest: sha256:3ef8dff6556154b29709611ff7b73d49ad669f749ac7c19d3cadc49ee30a3322
+    digest: sha256:5e635d171e57f83ceb6b861e892f490cb01cbe073f115a03bdafbe915f49a8b6
 resources:
   - deploy.yml

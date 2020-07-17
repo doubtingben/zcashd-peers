@@ -26,7 +26,9 @@ metadata:
 rules:
   - apiGroups: [""]
     resources:
+      - configmaps
       - pods
+      - secrets
     verbs: ["get", "list", "watch"]
 ---
 apiVersion: v1
