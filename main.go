@@ -39,7 +39,7 @@ import (
 )
 
 const labelName = "app"
-const labelValue = "zcash-node"
+const labelValue = "zcash-with-exporter"
 
 func main() {
 	versionFlag := flag.Bool("version", false, "print version information")
@@ -72,6 +72,7 @@ func main() {
 		fmt.Printf("Omg plz\n")
 
 		zcashPeersPods, err := clientset.CoreV1().Pods("default").List(metav1.ListOptions{LabelSelector: labelName + "=" + labelValue})
+		//fmt.Printf("zcashPeersPods: %#v\n", zcashPeersPods)		
 		if errors.IsNotFound(err) {
 			fmt.Printf("zcashPeersPods not found in default namespace\n")
 		} else if statusError, isStatus := err.(*errors.StatusError); isStatus {
@@ -80,7 +81,7 @@ func main() {
 			panic(err.Error())
 		} else {
 			for _, pod := range zcashPeersPods.Items {
-				fmt.Printf("Pod peer IP: %s", pod.Status.PodIP)
+				fmt.Printf("Pod peer IP: %s\n", pod.Status.PodIP)
 			}
 		}
 		fmt.Printf("This is the end\n")
