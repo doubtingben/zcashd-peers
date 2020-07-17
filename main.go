@@ -18,11 +18,13 @@ limitations under the License.
 package main
 
 import (
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"os"
 	"time"
 
+	"github.com/ybbus/jsonrpc"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -40,6 +42,9 @@ import (
 
 const labelName = "app"
 const labelValue = "zcash-with-exporter"
+const namespace = "default"
+const configMapName = "zcashd-testnet-miner-config"
+const rpcSecretName = "zcashd-rpc"
 
 func main() {
 	versionFlag := flag.Bool("version", false, "print version information")
@@ -61,18 +66,26 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
+	configMap, err := clientset.CoreV1().ConfigMaps(namespace).Get(configMapName, metav1.GetOptions{})
+	if err != nil {
+		panic(err.Error())
+	}
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(rpcSecretName, metav1.GetOptions{})
+	if err != nil {
+		panic(err.Error())
+	}
+	rpcUser := configMap.Data["ZCASHD_RPCUSER"]
+	rpcPort := configMap.Data["ZCASHD_RPCPORT"]
+	rpcPassword := secret.Data["password"]
+
 	for {
-		// get pods in all the namespaces by omitting namespace
-		// Or specify namespace to get pods in particular namespace
 		pods, err := clientset.CoreV1().Pods("").List(metav1.ListOptions{})
 		if err != nil {
 			panic(err.Error())
 		}
 		fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
-		fmt.Printf("Omg plz\n")
 
 		zcashPeersPods, err := clientset.CoreV1().Pods("default").List(metav1.ListOptions{LabelSelector: labelName + "=" + labelValue})
-		//fmt.Printf("zcashPeersPods: %#v\n", zcashPeersPods)		
 		if errors.IsNotFound(err) {
 			fmt.Printf("zcashPeersPods not found in default namespace\n")
 		} else if statusError, isStatus := err.(*errors.StatusError); isStatus {
@@ -80,8 +93,28 @@ func main() {
 		} else if err != nil {
 			panic(err.Error())
 		} else {
+			var currentIPs []string
 			for _, pod := range zcashPeersPods.Items {
-				fmt.Printf("Pod peer IP: %s\n", pod.Status.PodIP)
+				currentIPs = append(currentIPs, pod.Status.PodIP)
+			}
+			for _, pod := range zcashPeersPods.Items {
+				basicAuth := base64.StdEncoding.EncodeToString([]byte(rpcUser + ":" + string(rpcPassword)))
+				rpcClient := jsonrpc.NewClientWithOpts("http://"+pod.Status.PodIP+":"+rpcPort,
+					&jsonrpc.RPCClientOpts{
+						CustomHeaders: map[string]string{
+							"Authorization": "Basic " + basicAuth,
+						}})
+				var addNode map[string]interface{}
+				for _, peerIP := range currentIPs {
+					// Don't add this node as it's own peer
+					if peerIP != pod.Status.PodIP {
+						if err := rpcClient.CallFor(&addNode, "addnode", peerIP, "onetry"); err != nil {
+							fmt.Printf("Error calling addnode for Pod %s: %s\n", pod.Status.PodIP, err)
+						} else {
+							fmt.Printf("Added peer IP %s to pod: %s\n", peerIP, pod.Status.PodIP)
+						}
+					}
+				}
 			}
 		}
 		fmt.Printf("This is the end\n")

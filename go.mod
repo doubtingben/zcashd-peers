@@ -12,6 +12,7 @@ require (
 	github.com/libp2p/go-libp2p v0.10.0
 	github.com/libp2p/go-libp2p-core v0.6.0
 	github.com/libp2p/go-libp2p-peerstore v0.2.6
+	github.com/ybbus/jsonrpc v2.1.2+incompatible
 	k8s.io/apimachinery v0.17.0
 	k8s.io/client-go v0.17.0
 )
